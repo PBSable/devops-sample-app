@@ -8,7 +8,9 @@ pipeline {
         IMAGE_TAG = "latest"
     }
 
-     stage('Build Docker Image') {
+    stages {
+
+        stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
             }
