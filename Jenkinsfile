@@ -1,53 +1,44 @@
 pipeline {
     agent any
 
-    triggers {
-        githubPush()
-    }
-
     environment {
-        DOCKER_IMAGE = "kuldeep1497/devops-app"
+        AWS_REGION = "ap-south-1"
+        ECR_REGISTRY = "570760068875.dkr.ecr.ap-south-1.amazonaws.com"
+        ECR_REPO = "devops-app"
+        IMAGE_TAG = "latest"
     }
 
     stages {
-
-        stage('Clone GitHub Repo') {
+        stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/PBSable/devops-sample-app.git'
+                git 'https://github.com/<your-username>/<your-repo>.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_IMAGE:latest .'
+                sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
             }
         }
 
-        stage('DockerHub Login') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                }
-            }
-        }
-
-        stage('Push Image to DockerHub') {
-            steps {
-                sh 'docker push $DOCKER_IMAGE:latest'
-            }
-        }
-
-        stage('Deploy Container') {
+        stage('Login to ECR') {
             steps {
                 sh '''
-                docker rm -f devops-app || true
-                docker run -d --name devops-app -p 3000:3000 $DOCKER_IMAGE:latest
+                aws ecr get-login-password --region $AWS_REGION \
+                | docker login --username AWS --password-stdin $ECR_REGISTRY
                 '''
+            }
+        }
+
+        stage('Tag Image') {
+            steps {
+                sh 'docker tag $ECR_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG'
+            }
+        }
+
+        stage('Push Image to ECR') {
+            steps {
+                sh 'docker push $ECR_REGISTRY/$ECR_REPO:$IMAGE_TAG'
             }
         }
     }
