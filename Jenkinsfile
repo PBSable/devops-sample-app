@@ -8,14 +8,7 @@ pipeline {
         IMAGE_TAG = "latest"
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                git 'https://github.com/PBSable/devops-sample-app.git'
-            }
-        }
-
-        stage('Build Docker Image') {
+     stage('Build Docker Image') {
             steps {
                 sh 'docker build -t $ECR_REPO:$IMAGE_TAG .'
             }
